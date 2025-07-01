@@ -24,16 +24,21 @@ logger = logging.getLogger(__name__)
 
 class ChartService:
     """Service for calculating and analyzing astrological charts"""
-    
-    def __init__(self):
-        self._cache = {}
+
+    def __init__(self, default_settings: Optional[ChartSettings] = None):
+        self._cache: Dict[str, ChartResponse] = {}
+        self._default_settings = default_settings or ChartSettings()
         self._setup_immanuel()
     
     def _setup_immanuel(self):
         """Configure immanuel-python settings"""
         # Set default settings
         immanuel.config.set({
-            'house_system': original_settings.house_system,
+            'house_system': getattr(
+                chart_const,
+                self._default_settings.house_system.upper(),
+                chart_const.PLACIDUS,
+            ),
             'angles': [chart_const.ASC, chart_const.DESC, chart_const.MC, chart_const.IC],
             'planets': list(chart_const.PLANETS),
             'points': [chart_const.NORTH_NODE, chart_const.SOUTH_NODE, chart_const.VERTEX],
