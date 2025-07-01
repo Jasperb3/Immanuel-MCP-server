@@ -21,7 +21,7 @@ __all__ = [
     "app",
     "ChartService",
     "ChartRequest",
-    "ChartResponse", 
+    "ChartResponse",
     "ChartSettings",
     "Subject",
     "InterpretationRequest",
