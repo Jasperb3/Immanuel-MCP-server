@@ -1,2 +1,28 @@
 CLAUDE.md
 GEMINI.md
+# Virtual environments
+.venv/
+
+# Byte-compiled / cache files
+__pycache__/
+*.pyc
+
+# MyPy and Ruff caches
+.mypy_cache/
+.ruff_cache/
+
+# IDE directories
+.idea/
+
+# Build artifacts
+build/
+dist/
+
+# Pytest cache
+.pytest_cache/
+
+# Egg info
+*.egg-info/
+
+# System files
+.DS_Store
