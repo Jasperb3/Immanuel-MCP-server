@@ -14,8 +14,13 @@ from pydantic import BaseModel, Field
 
 from immanuel_mcp.chart_service import ChartService
 from immanuel_mcp.models import (
-    Subject, ChartSettings, ChartRequest, ChartResponse,
-    InterpretationRequest, ComparisonRequest, TransitRequest
+    Subject,
+    ChartSettings,
+    ChartRequest,
+    ChartResponse,
+    InterpretationRequest,
+    ComparisonRequest,
+    TransitRequest,
 )
 from immanuel_mcp.settings import get_settings
 
@@ -24,7 +29,7 @@ from immanuel_mcp.settings import get_settings
 app = FastAPI(
     title="Immanuel MCP API",
     description="REST API for astrological chart calculations",
-    version="0.1.0"
+    version="0.1.0",
 )
 
 # Add CORS middleware
@@ -87,9 +92,7 @@ class TransitAPIRequest(BaseModel):
 async def root():
     """Root endpoint - health check"""
     return HealthResponse(
-        status="ok",
-        version=settings.server_version,
-        timestamp=datetime.now().isoformat()
+        status="ok", version=settings.server_version, timestamp=datetime.now().isoformat()
     )
 
 
@@ -97,9 +100,7 @@ async def root():
 async def health():
     """Health check endpoint"""
     return HealthResponse(
-        status="ok",
-        version=settings.server_version,
-        timestamp=datetime.now().isoformat()
+        status="ok", version=settings.server_version, timestamp=datetime.now().isoformat()
     )
 
 
@@ -111,7 +112,7 @@ async def get_schema():
         "chart_response": ChartResponse.schema(),
         "interpretation_request": InterpretationRequest.schema(),
         "comparison_request": ComparisonRequest.schema(),
-        "transit_request": TransitRequest.schema()
+        "transit_request": TransitRequest.schema(),
     }
 
 
@@ -121,7 +122,7 @@ async def get_version():
     return {
         "server_version": settings.server_version,
         "immanuel_version": "1.0.0",  # Would get from immanuel.__version__
-        "api_version": "0.1.0"
+        "api_version": "0.1.0",
     }
 
 
@@ -130,30 +131,65 @@ async def get_info():
     """Get information about available options"""
     return {
         "chart_types": [
-            "natal", "solar_return", "lunar_return", "progressed",
-            "solar_arc", "synastry", "composite", "davison"
+            "natal",
+            "solar_return",
+            "lunar_return",
+            "progressed",
+            "solar_arc",
+            "synastry",
+            "composite",
+            "davison",
         ],
         "house_systems": [
-            "placidus", "koch", "whole_sign", "equal", "campanus",
-            "regiomontanus", "porphyry", "morinus", "alcabitus"
+            "placidus",
+            "koch",
+            "whole_sign",
+            "equal",
+            "campanus",
+            "regiomontanus",
+            "porphyry",
+            "morinus",
+            "alcabitus",
         ],
         "objects": {
-            "planets": ["SUN", "MOON", "MERCURY", "VENUS", "MARS", 
-                       "JUPITER", "SATURN", "URANUS", "NEPTUNE", "PLUTO"],
-            "points": ["ASC", "MC", "NORTH_NODE", "SOUTH_NODE", 
-                      "VERTEX", "PART_OF_FORTUNE"],
+            "planets": [
+                "SUN",
+                "MOON",
+                "MERCURY",
+                "VENUS",
+                "MARS",
+                "JUPITER",
+                "SATURN",
+                "URANUS",
+                "NEPTUNE",
+                "PLUTO",
+            ],
+            "points": ["ASC", "MC", "NORTH_NODE", "SOUTH_NODE", "VERTEX", "PART_OF_FORTUNE"],
             "asteroids": ["CERES", "PALLAS", "JUNO", "VESTA", "CHIRON"],
-            "other": ["LILITH", "SELENA"]
+            "other": ["LILITH", "SELENA"],
         },
         "aspects": [
-            "conjunction", "opposition", "trine", "square", "sextile",
-            "quincunx", "semisquare", "sesquiquadrate", "semisextile",
-            "quintile", "biquintile"
+            "conjunction",
+            "opposition",
+            "trine",
+            "square",
+            "sextile",
+            "quincunx",
+            "semisquare",
+            "sesquiquadrate",
+            "semisextile",
+            "quintile",
+            "biquintile",
         ],
-        "interpretation_types": ["basic", "detailed", "aspects_only", 
-                               "houses_only", "dignities_only"],
+        "interpretation_types": [
+            "basic",
+            "detailed",
+            "aspects_only",
+            "houses_only",
+            "dignities_only",
+        ],
         "comparison_types": ["synastry", "composite", "davison"],
-        "progression_types": ["secondary", "solar_arc", "tertiary", "minor"]
+        "progression_types": ["secondary", "solar_arc", "tertiary", "minor"],
     }
 
 
@@ -166,22 +202,19 @@ async def calculate_chart(request: ChartCalculationRequest):
             latitude=request.latitude,
             longitude=request.longitude,
             timezone=request.timezone,
-            name=request.name
+            name=request.name,
         )
-        
+
         settings = ChartSettings(
-            house_system=request.house_system,
-            include_objects=request.include_objects or []
+            house_system=request.house_system, include_objects=request.include_objects or []
         )
-        
+
         result = await chart_service.calculate_single_chart(
-            subject=subject,
-            chart_type=request.chart_type,
-            settings=settings
+            subject=subject, chart_type=request.chart_type, settings=settings
         )
-        
+
         return result.dict()
-        
+
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
@@ -194,28 +227,24 @@ async def calculate_batch(request: BatchChartRequest):
     try:
         subjects = []
         for subj_data in request.subjects:
-            subjects.append(Subject(
-                datetime=subj_data.datetime,
-                latitude=subj_data.latitude,
-                longitude=subj_data.longitude,
-                timezone=subj_data.timezone,
-                name=subj_data.name
-            ))
-        
+            subjects.append(
+                Subject(
+                    datetime=subj_data.datetime,
+                    latitude=subj_data.latitude,
+                    longitude=subj_data.longitude,
+                    timezone=subj_data.timezone,
+                    name=subj_data.name,
+                )
+            )
+
         settings = ChartSettings(**request.settings) if request.settings else ChartSettings()
-        
+
         results = await chart_service.calculate_batch_charts(
-            subjects=subjects,
-            chart_type=request.chart_type,
-            settings=settings
+            subjects=subjects, chart_type=request.chart_type, settings=settings
         )
-        
-        return {
-            "charts": [r.dict() for r in results],
-            "count": len(results),
-            "status": "success"
-        }
-        
+
+        return {"charts": [r.dict() for r in results], "count": len(results), "status": "success"}
+
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
@@ -227,16 +256,15 @@ async def interpret_chart(request: InterpretationAPIRequest):
     """Get interpretations for a calculated chart"""
     try:
         interpretation = await chart_service.interpret_chart(
-            chart_data=request.chart_data,
-            interpretation_type=request.interpretation_type
+            chart_data=request.chart_data, interpretation_type=request.interpretation_type
         )
-        
+
         return {
             "interpretation": interpretation,
             "type": request.interpretation_type,
-            "status": "success"
+            "status": "success",
         }
-        
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Interpretation error: {str(e)}")
 
@@ -246,17 +274,11 @@ async def compare_charts(request: ComparisonAPIRequest):
     """Compare two charts (synastry, composite, etc.)"""
     try:
         comparison = await chart_service.compare_charts(
-            chart1=request.chart1,
-            chart2=request.chart2,
-            comparison_type=request.comparison_type
+            chart1=request.chart1, chart2=request.chart2, comparison_type=request.comparison_type
         )
-        
-        return {
-            "comparison": comparison,
-            "type": request.comparison_type,
-            "status": "success"
-        }
-        
+
+        return {"comparison": comparison, "type": request.comparison_type, "status": "success"}
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Comparison error: {str(e)}")
 
@@ -266,19 +288,15 @@ async def find_transits(request: TransitAPIRequest):
     """Find transits to a natal chart"""
     try:
         transit_date = request.transit_date or datetime.now().isoformat()
-        
+
         transits = await chart_service.find_transits(
             natal_chart=request.natal_chart,
             transit_date=transit_date,
-            aspect_orbs=request.aspect_orbs
+            aspect_orbs=request.aspect_orbs,
         )
-        
-        return {
-            "transits": transits,
-            "transit_date": transit_date,
-            "status": "success"
-        }
-        
+
+        return {"transits": transits, "transit_date": transit_date, "status": "success"}
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Transit calculation error: {str(e)}")
 
@@ -288,25 +306,22 @@ async def get_ephemeris(
     start_date: str = Query(..., description="Start date in ISO format"),
     end_date: str = Query(..., description="End date in ISO format"),
     objects: Optional[str] = Query(None, description="Comma-separated list of objects"),
-    interval: str = Query("daily", description="Interval: daily, weekly, monthly")
+    interval: str = Query("daily", description="Interval: daily, weekly, monthly"),
 ):
     """Get ephemeris data for a date range"""
     try:
         object_list = objects.split(",") if objects else None
-        
+
         ephemeris = await chart_service.get_ephemeris(
-            start_date=start_date,
-            end_date=end_date,
-            objects=object_list,
-            interval=interval
+            start_date=start_date, end_date=end_date, objects=object_list, interval=interval
         )
-        
+
         return {
             "ephemeris": ephemeris,
             "period": f"{start_date} to {end_date}",
-            "status": "success"
+            "status": "success",
         }
-        
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ephemeris error: {str(e)}")
 
@@ -315,53 +330,44 @@ async def get_ephemeris(
 async def get_moon_phases(
     start_date: str = Query(..., description="Start date for moon phase search"),
     end_date: str = Query(..., description="End date for moon phase search"),
-    timezone: str = Query("UTC", description="Timezone for phase times")
+    timezone: str = Query("UTC", description="Timezone for phase times"),
 ):
     """Get moon phases between dates"""
     try:
         phases = await chart_service.get_moon_phases(
-            start_date=start_date,
-            end_date=end_date,
-            timezone=timezone
+            start_date=start_date, end_date=end_date, timezone=timezone
         )
-        
+
         return {
             "moon_phases": phases,
             "period": f"{start_date} to {end_date}",
             "timezone": timezone,
-            "status": "success"
+            "status": "success",
         }
-        
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Moon phase error: {str(e)}")
 
 
 @app.get("/retrogrades/{year}")
 async def get_retrogrades(
-    year: int,
-    planets: Optional[str] = Query(None, description="Comma-separated list of planets")
+    year: int, planets: Optional[str] = Query(None, description="Comma-separated list of planets")
 ):
     """Get retrograde periods for a year"""
     try:
         planet_list = planets.split(",") if planets else ["MERCURY", "VENUS", "MARS"]
-        
-        retrogrades = await chart_service.get_retrograde_periods(
-            year=year,
-            planets=planet_list
-        )
-        
-        return {
-            "retrograde_periods": retrogrades,
-            "year": year,
-            "status": "success"
-        }
-        
+
+        retrogrades = await chart_service.get_retrograde_periods(year=year, planets=planet_list)
+
+        return {"retrograde_periods": retrogrades, "year": year, "status": "success"}
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Retrograde calculation error: {str(e)}")
 
 
 # WebSocket endpoint for real-time calculations (optional)
 from fastapi import WebSocket, WebSocketDisconnect
+
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
@@ -371,45 +377,32 @@ async def websocket_endpoint(websocket: WebSocket):
         while True:
             # Receive message
             data = await websocket.receive_json()
-            
+
             # Process based on message type
             if data.get("type") == "calculate":
                 # Calculate chart
                 subject = Subject(**data["subject"])
                 settings = ChartSettings(**data.get("settings", {}))
-                
+
                 result = await chart_service.calculate_single_chart(
-                    subject=subject,
-                    chart_type=data.get("chart_type", "natal"),
-                    settings=settings
+                    subject=subject, chart_type=data.get("chart_type", "natal"), settings=settings
                 )
-                
+
                 # Send result
-                await websocket.send_json({
-                    "type": "chart_result",
-                    "data": result.dict()
-                })
-            
+                await websocket.send_json({"type": "chart_result", "data": result.dict()})
+
             elif data.get("type") == "ping":
                 await websocket.send_json({"type": "pong"})
-            
+
     except WebSocketDisconnect:
         pass
     except Exception as e:
-        await websocket.send_json({
-            "type": "error",
-            "message": str(e)
-        })
+        await websocket.send_json({"type": "error", "message": str(e)})
         await websocket.close()
 
 
 if __name__ == "__main__":
     import uvicorn
-    
+
     # Run the FastAPI server
-    uvicorn.run(
-        "immanuel_mcp.api:app",
-        host="0.0.0.0",
-        port=8000,
-        reload=True
-    )
+    uvicorn.run("immanuel_mcp.api:app", host="0.0.0.0", port=8000, reload=True)
