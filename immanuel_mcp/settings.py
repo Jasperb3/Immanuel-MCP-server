@@ -5,7 +5,8 @@ Settings - Configuration management for Immanuel MCP Server
 import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional
-from pydantic import BaseSettings, Field, validator
+from pydantic import Field, field_validator
+from pydantic_settings import BaseSettings
 
 
 class ServerSettings(BaseSettings):
@@ -78,14 +79,14 @@ class ServerSettings(BaseSettings):
         env_file_encoding = "utf-8"
         case_sensitive = False
 
-    @validator("log_level")
+    @field_validator("log_level")
     def validate_log_level(cls, v):
         valid_levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
         if v.upper() not in valid_levels:
             raise ValueError(f"Invalid log level: {v}")
         return v.upper()
 
-    @validator("default_house_system")
+    @field_validator("default_house_system")
     def validate_house_system(cls, v):
         valid_systems = [
             "placidus",
@@ -102,14 +103,14 @@ class ServerSettings(BaseSettings):
             raise ValueError(f"Invalid house system: {v}")
         return v.lower()
 
-    @validator("interpretation_style")
+    @field_validator("interpretation_style")
     def validate_interpretation_style(cls, v):
         valid_styles = ["traditional", "modern", "psychological", "evolutionary"]
         if v.lower() not in valid_styles:
             raise ValueError(f"Invalid interpretation style: {v}")
         return v.lower()
 
-    @validator("ephemeris_path")
+    @field_validator("ephemeris_path")
     def validate_ephemeris_path(cls, v):
         """Ensure ephemeris directory exists"""
         if not v.exists():
