@@ -156,6 +156,11 @@ class TestChartService:
         """Create ChartService instance"""
         return ChartService()
 
+    def test_chart_service_init(self):
+        """Ensure ChartService initializes without errors"""
+        service = ChartService()
+        assert isinstance(service, ChartService)
+    
     @pytest.fixture
     def sample_subject(self):
         """Create sample subject"""
