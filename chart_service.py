@@ -33,18 +33,20 @@ class ChartService:
     def _setup_immanuel(self):
         """Configure immanuel-python settings"""
         # Set default settings
-        immanuel.config.set({
-            'house_system': getattr(
-                chart_const,
-                self._default_settings.house_system.upper(),
-                chart_const.PLACIDUS,
-            ),
-            'angles': [chart_const.ASC, chart_const.DESC, chart_const.MC, chart_const.IC],
-            'planets': list(chart_const.PLANETS),
-            'points': [chart_const.NORTH_NODE, chart_const.SOUTH_NODE, chart_const.VERTEX],
-            'asteroids': []  # Will be added based on user request
-        })
-    
+        immanuel.config.set(
+            {
+                "house_system": getattr(
+                    chart_const,
+                    self._default_settings.house_system.upper(),
+                    chart_const.PLACIDUS,
+                ),
+                "angles": [chart_const.ASC, chart_const.DESC, chart_const.MC, chart_const.IC],
+                "planets": list(chart_const.PLANETS),
+                "points": [chart_const.NORTH_NODE, chart_const.SOUTH_NODE, chart_const.VERTEX],
+                "asteroids": [],  # Will be added based on user request
+            }
+        )
+
     def _get_cache_key(self, subject: Subject, chart_type: str, settings: ChartSettings) -> str:
         """Generate cache key from request parameters"""
         key_data = {
@@ -287,7 +289,12 @@ class ChartService:
         return interpretations
 
     def _interpret_aspect(self, aspect: Any) -> str:
-        """Interpret a single aspect"""
+        """Interpret a single aspect.
+
+        The method accepts either a dictionary as returned in :class:`ChartResponse`
+        or an aspect object from ``immanuel``. Handling both forms keeps the public
+        ``interpret_chart`` and ``find_transits`` APIs flexible.
+        """
         aspect_meanings = {
             "conjunction": "blending and intensification",
             "opposition": "tension and awareness through polarity",
@@ -296,11 +303,20 @@ class ChartService:
             "sextile": "opportunity and cooperation",
         }
 
-        meaning = aspect_meanings.get(aspect.type.name.lower(), "interaction")
+        if isinstance(aspect, dict):
+            aspect_type = str(aspect.get("type", "")).lower()
+            first = aspect.get("first")
+            second = aspect.get("second")
+        else:
+            aspect_type = getattr(getattr(aspect, "type", None), "name", None)
+            if aspect_type:
+                aspect_type = aspect_type.lower()
+            first = getattr(getattr(aspect, "first", None), "name", None)
+            second = getattr(getattr(aspect, "second", None), "name", None)
 
-        return (
-            f"This aspect indicates {meaning} between {aspect.first.name} and {aspect.second.name}."
-        )
+        meaning = aspect_meanings.get(aspect_type or "", "interaction")
+
+        return f"This aspect indicates {meaning} between {first} and {second}."
 
     def _interpret_house_placement(
         self, obj_name: str, obj_data: Dict[str, Any]
