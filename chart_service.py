@@ -292,18 +292,37 @@ class ChartService:
         return interpretations
     
     def _interpret_aspect(self, aspect: Any) -> str:
-        """Interpret a single aspect"""
+        """Interpret a single aspect.
+
+        The method accepts either a dictionary as returned in :class:`ChartResponse`
+        or an aspect object from ``immanuel``. Handling both forms keeps the public
+        ``interpret_chart`` and ``find_transits`` APIs flexible.
+        """
+
         aspect_meanings = {
             'conjunction': 'blending and intensification',
             'opposition': 'tension and awareness through polarity',
             'trine': 'harmony and easy flow',
             'square': 'challenge and dynamic tension',
-            'sextile': 'opportunity and cooperation'
+            'sextile': 'opportunity and cooperation',
         }
-        
-        meaning = aspect_meanings.get(aspect.type.name.lower(), 'interaction')
-        
-        return f"This aspect indicates {meaning} between {aspect.first.name} and {aspect.second.name}."
+
+        if isinstance(aspect, dict):
+            aspect_type = str(aspect.get('type', '')).lower()
+            first = aspect.get('first')
+            second = aspect.get('second')
+        else:
+            aspect_type = getattr(getattr(aspect, 'type', None), 'name', None)
+            if aspect_type:
+                aspect_type = aspect_type.lower()
+            first = getattr(getattr(aspect, 'first', None), 'name', None)
+            second = getattr(getattr(aspect, 'second', None), 'name', None)
+
+        meaning = aspect_meanings.get(aspect_type or '', 'interaction')
+
+        return (
+            f"This aspect indicates {meaning} between {first} and {second}."
+        )
     
     def _interpret_house_placement(self, obj_name: str, obj_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Interpret a house placement"""
