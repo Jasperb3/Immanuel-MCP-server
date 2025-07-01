@@ -1,0 +1,118 @@
+{
+  "mcpServers": {
+    "immanuel": {
+      "command": "uv",
+      "args": ["run", "python", "-m", "immanuel_mcp.main"],
+      "cwd": "/path/to/immanuel-mcp",
+      "env": {
+        "IMMANUEL_LOG_LEVEL": "INFO",
+        "IMMANUEL_ENABLE_CACHE": "true",
+        "IMMANUEL_DEFAULT_HOUSE_SYSTEM": "placidus"
+      }
+    }
+  },
+  "toolDescriptions": {
+    "immanuel": {
+      "calculate_chart": {
+        "description": "Calculate a comprehensive astrological chart including planetary positions, aspects, houses, and dignities",
+        "examples": [
+          "Calculate my natal chart for January 1, 2000 at 10:00 AM in Los Angeles",
+          "Create a birth chart for someone born on March 15, 1990 at 2:30 PM in New York",
+          "Generate an astrological chart with Placidus houses for December 25, 1980 at noon in London"
+        ]
+      },
+      "batch_calculate_charts": {
+        "description": "Calculate multiple charts at once, perfect for families, groups, or time series analysis",
+        "examples": [
+          "Calculate natal charts for my whole family",
+          "Generate charts for all team members born in different years",
+          "Create a series of solar return charts for the next 5 years"
+        ]
+      },
+      "interpret_chart": {
+        "description": "Provide meaningful interpretations of chart features including aspects, house placements, and dignities",
+        "examples": [
+          "Interpret the major aspects in this chart",
+          "What does Mars in the 10th house mean?",
+          "Give me a detailed interpretation of this natal chart"
+        ]
+      },
+      "compare_charts": {
+        "description": "Compare two charts for relationship compatibility (synastry) or create composite charts",
+        "examples": [
+          "Compare these two charts for relationship compatibility",
+          "Create a synastry analysis between me and my partner",
+          "Generate a composite chart for this couple"
+        ]
+      },
+      "find_transits": {
+        "description": "Calculate current or future planetary transits to a natal chart",
+        "examples": [
+          "What transits am I experiencing right now?",
+          "Show me the major transits for next month",
+          "When will Jupiter transit my natal Sun?"
+        ]
+      },
+      "calculate_progressions": {
+        "description": "Calculate progressed charts showing symbolic planetary movement over time",
+        "examples": [
+          "Calculate my secondary progressions for this year",
+          "Show me solar arc directions for age 30",
+          "What are my progressed Moon positions?"
+        ]
+      },
+      "get_moon_phases": {
+        "description": "Find moon phases with exact times and zodiac positions",
+        "examples": [
+          "When is the next full moon?",
+          "Show me all moon phases for this month",
+          "Find new moons in fire signs this year"
+        ]
+      },
+      "get_retrograde_periods": {
+        "description": "Find when planets go retrograde including shadow periods",
+        "examples": [
+          "When is Mercury retrograde this year?",
+          "Show me all retrograde periods for 2024",
+          "When does Venus go retrograde next?"
+        ]
+      },
+      "find_aspect_patterns": {
+        "description": "Identify significant aspect patterns like Grand Trines, T-Squares, and Yods",
+        "examples": [
+          "Does this chart have any grand trines?",
+          "Find all aspect patterns in my natal chart",
+          "Check for T-Squares or Grand Crosses"
+        ]
+      },
+      "get_ephemeris": {
+        "description": "Get planetary positions over time for tracking movements",
+        "examples": [
+          "Show me Mars positions for the next month",
+          "Track Jupiter's movement through Aries",
+          "Get daily Moon positions for this week"
+        ]
+      },
+      "get_chart_info": {
+        "description": "Get information about available chart types, house systems, and configuration options",
+        "examples": [
+          "What house systems are available?",
+          "List all available chart types",
+          "What asteroids can be included?"
+        ]
+      }
+    }
+  },
+  "promptEnhancements": {
+    "immanuel": {
+      "systemPrompt": "You have access to a comprehensive astrological calculation system. When users ask about astrology, birth charts, planetary positions, or related topics, use the Immanuel MCP tools to provide accurate calculations and interpretations. Always ask for birth date, time, and location when calculating natal charts.",
+      "contextualHints": [
+        "For birth chart readings, always calculate the actual chart rather than giving generic sun sign interpretations",
+        "When discussing compatibility, use the synastry comparison tool for accurate analysis",
+        "For timing questions, check actual transits and progressions",
+        "Include asteroids like Chiron or Lilith when they might be relevant to the question",
+        "Mention retrograde periods when discussing planetary influences"
+      ]
+    }
+  }
+}

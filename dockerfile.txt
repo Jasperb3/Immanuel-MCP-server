@@ -1,0 +1,58 @@
+# Dockerfile for Immanuel MCP Server
+# Note: Primary deployment uses uv directly, this is an alternative
+
+FROM python:3.11-slim
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    wget \
+    curl \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install uv
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+ENV PATH="/root/.cargo/bin:$PATH"
+
+# Copy project files
+COPY pyproject.toml requirements.txt ./
+COPY immanuel_mcp/ ./immanuel_mcp/
+
+# Create necessary directories
+RUN mkdir -p /app/ephemeris /app/cache /app/logs /app/.immanuel/ephemeris
+
+# Create virtual environment and install dependencies
+RUN uv venv && \
+    . .venv/bin/activate && \
+    uv pip install -r requirements.txt
+
+# Download Swiss Ephemeris files
+RUN cd /app/.immanuel/ephemeris && \
+    wget -q https://www.astro.com/ftp/swisseph/ephe/semo_18.se1 && \
+    wget -q https://www.astro.com/ftp/swisseph/ephe/sepl_18.se1 && \
+    wget -q https://www.astro.com/ftp/swisseph/ephe/seas_18.se1 || true
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+ENV PATH="/app/.venv/bin:$PATH"
+ENV IMMANUEL_EPHEMERIS_PATH=/app/.immanuel/ephemeris
+
+# Create a non-root user
+RUN useradd -m -u 1000 immanuel && \
+    chown -R immanuel:immanuel /app
+
+# Switch to non-root user
+USER immanuel
+
+# Expose ports
+EXPOSE 8000 9999
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD python -c "import immanuel_mcp; print('OK')" || exit 1
+
+# Default command (can be overridden)
+CMD ["python", "-m", "immanuel_mcp.main"]
