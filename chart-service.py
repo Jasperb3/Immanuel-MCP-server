@@ -33,7 +33,7 @@ class ChartService:
         """Configure immanuel-python settings"""
         # Set default settings
         immanuel.config.set({
-            'house_system': chart_const.PLACIDUS,
+            'house_system': original_settings.house_system,
             'angles': [chart_const.ASC, chart_const.DESC, chart_const.MC, chart_const.IC],
             'planets': list(chart_const.PLANETS),
             'points': [chart_const.NORTH_NODE, chart_const.SOUTH_NODE, chart_const.VERTEX],
@@ -174,9 +174,9 @@ class ChartService:
     def _build_chart_response(
         self,
         chart: Any,
-        subject: Subject,
+        original_subject: Subject,
         chart_type: str,
-        settings: ChartSettings
+        original_settings: ChartSettings
     ) -> ChartResponse:
         """Build structured response from chart object"""
         
@@ -222,10 +222,12 @@ class ChartService:
         metadata = {
             'calculated_at': datetime.now().isoformat(),
             'chart_type': chart_type,
-            'house_system': settings.house_system,
-            'timezone_used': subject.timezone or 'UTC',
-            'immanuel_version': '1.0.0',  # Would get from immanuel.__version__
-            'cache_key': self._get_cache_key(subject, chart_type, settings)
+            'house_system': original_settings.house_system,
+            'latitude': original_subject.latitude,
+            'longitude': original_subject.longitude,
+            'timezone_used': original_subject.timezone or 'UTC',
+            'immanuel_version': immanuel.__version__,
+            'cache_key': self._get_cache_key(original_subject, chart_type, original_settings)
         }
         
         return ChartResponse(
@@ -289,7 +291,7 @@ class ChartService:
         
         return interpretations
     
-    def _interpret_aspect(self, aspect: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def _interpret_aspect(self, aspect: Any) -> str:
         """Interpret a single aspect"""
         aspect_meanings = {
             'conjunction': 'blending and intensification',
@@ -299,14 +301,9 @@ class ChartService:
             'sextile': 'opportunity and cooperation'
         }
         
-        meaning = aspect_meanings.get(aspect['type'].lower(), 'interaction')
+        meaning = aspect_meanings.get(aspect.type.name.lower(), 'interaction')
         
-        return {
-            'aspect': f"{aspect['first']} {aspect['type']} {aspect['second']}",
-            'orb': aspect['orb'],
-            'meaning': f"This aspect indicates {meaning} between these planetary energies.",
-            'applying': aspect.get('applying', None)
-        }
+        return f"This aspect indicates {meaning} between {aspect.first.name} and {aspect.second.name}."
     
     def _interpret_house_placement(self, obj_name: str, obj_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Interpret a house placement"""
@@ -471,21 +468,36 @@ class ChartService:
         aspect_orbs: Optional[Dict[str, float]] = None
     ) -> List[Dict[str, Any]]:
         """Find transits to natal chart"""
-        # Calculate current positions
-        dt = datetime.fromisoformat(transit_date.replace('Z', '+00:00'))
+        # Get natal subject from chart data
+        natal_subject = charts.Subject(
+            date_time=natal_chart['metadata']['calculated_at'],
+            latitude=natal_chart['metadata']['latitude'],
+            longitude=natal_chart['metadata']['longitude'],
+        )
         
-        # Would calculate transit chart here
-        # For now, return placeholder
-        return [
-            {
-                'transit_planet': 'Jupiter',
-                'natal_planet': 'Sun',
-                'aspect': 'trine',
-                'orb': 2.5,
-                'exact_date': (dt + timedelta(days=7)).isoformat(),
-                'interpretation': 'Expansion and opportunity'
-            }
-        ]
+        # Create natal and transit charts
+        natal = charts.Natal(natal_subject)
+        transit_chart = charts.Transits(
+            latitude=natal_chart['metadata']['latitude'],
+            longitude=natal_chart['metadata']['longitude'],
+            date_time=transit_date
+        )
+        
+        # Calculate synastry between natal and transit charts
+        synastry = charts.Natal(natal_subject, aspects_to=transit_chart)
+        
+        transits = []
+        for aspect in synastry.aspects.values():
+            transits.append({
+                'transit_planet': aspect.second.name,
+                'natal_planet': aspect.first.name,
+                'aspect': aspect.type.name,
+                'orb': aspect.orb,
+                'exact_date': None,  # Not easily available
+                'interpretation': self._interpret_aspect(aspect)
+            })
+            
+        return transits
     
     async def get_ephemeris(
         self,
@@ -495,14 +507,32 @@ class ChartService:
         interval: str
     ) -> List[Dict[str, Any]]:
         """Get ephemeris data"""
-        # Would calculate ephemeris here
-        # For now, return placeholder
-        return [
-            {
-                'date': start_date,
-                'positions': {obj: 0.0 for obj in objects}
-            }
-        ]
+        start = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
+        end = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
+        
+        if interval == 'daily':
+            delta = timedelta(days=1)
+        elif interval == 'hourly':
+            delta = timedelta(hours=1)
+        else:
+            delta = timedelta(days=1)
+            
+        ephemeris_data = []
+        current_date = start
+        while current_date <= end:
+            chart = charts.Transits(date_time=current_date)
+            positions = {}
+            for obj_name in objects:
+                obj_const = getattr(chart_const, obj_name.upper(), None)
+                if obj_const and obj_const in chart.objects:
+                    positions[obj_name] = chart.objects[obj_const].longitude
+            ephemeris_data.append({
+                'date': current_date.isoformat(),
+                'positions': positions
+            })
+            current_date += delta
+            
+        return ephemeris_data
     
     async def find_aspect_patterns(
         self,
@@ -510,13 +540,18 @@ class ChartService:
         pattern_types: Optional[List[str]] = None
     ) -> List[Dict[str, Any]]:
         """Find aspect patterns in chart"""
-        patterns = []
+        # The immanuel-python library automatically calculates chart shape,
+        # which is a form of pattern detection. We can leverage that.
         
-        # Would implement pattern detection here
-        # Example: Grand Trine detection
-        # For now, return placeholder
-        
-        return patterns
+        chart_shape = chart_data.get('shape')
+        if chart_shape:
+            return [{
+                'pattern_name': chart_shape,
+                'involved_objects': [], # Not directly available
+                'interpretation': f'The overall chart shape is a {chart_shape}.'
+            }]
+            
+        return []
     
     async def calculate_progressions(
         self,
@@ -525,13 +560,20 @@ class ChartService:
         progression_type: str
     ) -> Dict[str, Any]:
         """Calculate progressed chart"""
-        # Would calculate progressions here
-        # For now, return placeholder
-        return {
-            'progression_type': progression_type,
-            'date': progression_date,
-            'objects': {}
-        }
+        natal_subject = charts.Subject(
+            date_time=natal_chart['metadata']['calculated_at'],
+            latitude=natal_chart['metadata']['latitude'],
+            longitude=natal_chart['metadata']['longitude'],
+        )
+        
+        progressed_chart = charts.Progressed(natal_subject, progression_date)
+        
+        return self._build_chart_response(
+            progressed_chart,
+            natal_subject,
+            'progressed',
+            ChartSettings()
+        )
     
     async def get_moon_phases(
         self,
@@ -540,15 +582,22 @@ class ChartService:
         timezone: str
     ) -> List[Dict[str, Any]]:
         """Get moon phases between dates"""
-        # Would calculate moon phases here
-        # For now, return placeholder
-        return [
-            {
-                'phase': 'new_moon',
-                'datetime': start_date,
-                'sign': 'Aries'
-            }
-        ]
+        start = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
+        end = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
+        
+        moon_phases = []
+        current_date = start
+        while current_date <= end:
+            subject = charts.Subject(date_time=current_date, timezone=timezone)
+            natal = charts.Natal(subject)
+            moon_phases.append({
+                'phase': natal.moon_phase.formatted,
+                'datetime': natal.native.date_time.datetime.isoformat(),
+                'sign': natal.objects[chart_const.MOON].sign.name
+            })
+            current_date += timedelta(days=1) # Check daily for phase changes
+            
+        return moon_phases
     
     async def get_retrograde_periods(
         self,
@@ -556,16 +605,48 @@ class ChartService:
         planets: List[str]
     ) -> Dict[str, List[Dict[str, Any]]]:
         """Get retrograde periods for planets"""
-        # Would calculate retrograde periods here
-        # For now, return placeholder
-        return {
-            planet: [
-                {
-                    'start': f'{year}-01-01',
-                    'end': f'{year}-01-23',
-                    'shadow_start': f'{year-1}-12-15',
-                    'shadow_end': f'{year}-02-15'
-                }
-            ]
-            for planet in planets
-        }
+        retrograde_periods = {planet: [] for planet in planets}
+        
+        # Immanuel-python doesn't have a direct function for this,
+        # so we'll simulate by checking daily movement.
+        
+        for planet_name in planets:
+            planet_const = getattr(chart_const, planet_name.upper(), None)
+            if not planet_const:
+                continue
+            
+            start_of_year = datetime(year, 1, 1)
+            end_of_year = datetime(year, 12, 31)
+            
+            current_date = start_of_year
+            is_retrograde = False
+            period_start = None
+            
+            while current_date <= end_of_year:
+                chart = charts.Transits(date_time=current_date)
+                obj = chart.objects.get(planet_const)
+                
+                if obj and hasattr(obj, 'movement') and obj.movement.retrograde:
+                    if not is_retrograde:
+                        is_retrograde = True
+                        period_start = current_date
+                elif is_retrograde:
+                    is_retrograde = False
+                    retrograde_periods[planet_name].append({
+                        'start': period_start.isoformat(),
+                        'end': (current_date - timedelta(days=1)).isoformat(),
+                        'shadow_start': None, # Not easily available
+                        'shadow_end': None # Not easily available
+                    })
+                current_date += timedelta(days=1)
+            
+            # If still retrograde at year end
+            if is_retrograde:
+                retrograde_periods[planet_name].append({
+                    'start': period_start.isoformat(),
+                    'end': end_of_year.isoformat(),
+                    'shadow_start': None,
+                    'shadow_end': None
+                })
+                
+        return retrograde_periods
